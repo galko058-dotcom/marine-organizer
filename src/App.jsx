@@ -29,7 +29,7 @@ export default function App() {
 
   // 🔹 ЗАРЕЖДАНЕ ОТ BACKEND
   useEffect(() => {
-  fetch("(`${API_URL}/data")
+ fetch(`${API_URL}/data`)
     .then(res => res.json())
     .then(data => {
       setOngoingTasks(data.ongoing || []);
@@ -43,18 +43,27 @@ export default function App() {
   useEffect(() => {
   if (!isLoaded) return; // 🔥 не записвай преди да сме заредили
 
-  fetch("(`${API_URL}/data", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      ongoing: ongoingTasks,
-      upcoming: upcomingTasks,
-      archived: archivedTasks
-    })
-  });
-}, [ongoingTasks, upcomingTasks, archivedTasks, isLoaded]);
+ useEffect(() => {
+  async function saveData() {
+    try {
+      await fetch(`${API_URL}/data`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ongoing: ongoingTasks,
+          upcoming: upcomingTasks,
+          archived: archivedTasks,
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to save data:", err);
+    }
+  }
+
+  saveData();
+}, [ongoingTasks, upcomingTasks, archivedTasks]);
   useEffect(() => {
   setSelectedTask(null);
 }, [view]);
@@ -718,11 +727,11 @@ const isOngoing = ongoingTasks.some(t => t.id === currentTask.id);
       f.url.split("/uploads/")[1]
     );
 
-    await fetch("(`${API_URL}/delete-files", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ files: fileNames }),
-    });
+    await fetch(`${API_URL}/delete-files`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ files: fileNames }),
+});
   }
 
   setArchivedTasks(tasks =>
