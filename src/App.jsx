@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-const API_URL = `http://${window.location.hostname}:5000`;
+const API_URL = "https://marine-organizer.onrender.com";
 const users = ["MV", "GI", "GN", "DV", "YG"];
 const progressColumns = ["DG1", "DG2", "DG3", "ME"];
 const progressRows = [
@@ -29,7 +29,7 @@ export default function App() {
 
   // 🔹 ЗАРЕЖДАНЕ ОТ BACKEND
   useEffect(() => {
-  fetch("http://192.168.0.146:5000/data")
+  fetch("(`${API_URL}/data")
     .then(res => res.json())
     .then(data => {
       setOngoingTasks(data.ongoing || []);
@@ -43,7 +43,7 @@ export default function App() {
   useEffect(() => {
   if (!isLoaded) return; // 🔥 не записвай преди да сме заредили
 
-  fetch("http://192.168.0.146:5000/data", {
+  fetch("(`${API_URL}/data", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -718,7 +718,7 @@ const isOngoing = ongoingTasks.some(t => t.id === currentTask.id);
       f.url.split("/uploads/")[1]
     );
 
-    awaitfetch("http://192.168.0.146:5000/delete-files", {
+    await fetch("(`${API_URL}/delete-files", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ files: fileNames }),
