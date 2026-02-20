@@ -1,0 +1,101 @@
+{
+  "ongoing": [
+    {
+      "id": 1771439908275,
+      "job": "aaa",
+      "workOrder": "bbb",
+      "contact": "",
+      "seInCharge": "MV",
+      "status": "In progress",
+      "files": [
+        {
+          "name": "634678330_25666262623001748_1325556149341714011_n.jpg",
+          "url": "http://192.168.0.146:5000/uploads/1771440565077-634678330_25666262623001748_1325556149341714011_n.jpg1771440565077-634678330_25666262623001748_1325556149341714011_n.jpg"
+        },
+        {
+          "name": "634678330_25666262623001748_1325556149341714011_n.jpg",
+          "url": "http://192.168.0.146:5000/uploads/1771440866670-634678330_25666262623001748_1325556149341714011_n.jpg"
+        }
+      ],
+      "progressColumns": [
+        "DG1",
+        "DG2",
+        "DG3",
+        "ME"
+      ],
+      "progress": {
+        "DG1": {
+          "Dismount": false,
+          "Pre test": false,
+          "Disassembled": false,
+          "Inspected by client": false,
+          "Def report confirmed": false,
+          "Assembled": false,
+          "Tested": false,
+          "Installed": false,
+          "Tested on board": false,
+          "Sea trials done": false,
+          "All reports signed": false
+        },
+        "DG2": {
+          "Dismount": false,
+          "Pre test": false,
+          "Disassembled": false,
+          "Inspected by client": false,
+          "Def report confirmed": false,
+          "Assembled": false,
+          "Tested": false,
+          "Installed": false,
+          "Tested on board": false,
+          "Sea trials done": false,
+          "All reports signed": false
+        },
+        "DG3": {
+          "Dismount": false,
+          "Pre test": false,
+          "Disassembled": false,
+          "Inspected by client": false,
+          "Def report confirmed": false,
+          "Assembled": false,
+          "Tested": false,
+          "Installed": false,
+          "Tested on board": false,
+          "Sea trials done": false,
+          "All reports signed": false
+        },
+        "ME": {
+          "Dismount": false,
+          "Pre test": false,
+          "Disassembled": false,
+          "Inspected by client": false,
+          "Def report confirmed": false,
+          "Assembled": false,
+          "Tested": false,
+          "Installed": false,
+          "Tested on board": false,
+          "Sea trials done": false,
+          "All reports signed": false
+        }
+      }
+    }
+  ],
+  "upcoming": [
+    {
+      "id": 1771439920837,
+      "job": "vvv",
+      "workOrder": "cccc",
+      "expectedAt": "",
+      "seInCharge": "MV",
+      "files": []
+    },
+    {
+      "id": 1771439944616,
+      "job": "Test",
+      "workOrder": "666",
+      "expectedAt": "",
+      "seInCharge": "MV",
+      "files": []
+    }
+  ],
+  "archived": []
+}
