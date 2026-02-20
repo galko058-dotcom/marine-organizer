@@ -165,10 +165,10 @@ export default function App() {
 
   const data = await response.json();
 
-  const fileData = {
-    name: data.originalName,
-   url: `${API_URL}/uploads/${data.fileName}`
-  };
+ const fileData = {
+  name: data.originalName,
+  url: `${API_URL}/uploads/${data.fileName}`,
+};
 
   // Проверяваме къде се намира задачата
   const isOngoing = ongoingTasks.some(t => t.id === taskId);
