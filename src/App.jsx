@@ -28,22 +28,21 @@ export default function App() {
   const [archivedTasks, setArchivedTasks] = useState([]);
 
   // 🔹 ЗАРЕЖДАНЕ ОТ BACKEND
-  useEffect(() => {
- fetch(`${API_URL}/data`)
+useEffect(() => {
+  fetch(`${API_URL}/data`)
     .then(res => res.json())
     .then(data => {
       setOngoingTasks(data.ongoing || []);
       setUpcomingTasks(data.upcoming || []);
       setArchivedTasks(data.archived || []);
-      setIsLoaded(true); // 🔥 важно
+      setIsLoaded(true);
     });
 }, []);
 
-  // 🔹 ЗАПИС КЪМ BACKEND
-  useEffect(() => {
-  if (!isLoaded) return; // 🔥 не записвай преди да сме заредили
+// 🔹 ЗАПИС КЪМ BACKEND
+useEffect(() => {
+  if (!isLoaded) return;
 
- useEffect(() => {
   async function saveData() {
     try {
       await fetch(`${API_URL}/data`, {
@@ -63,8 +62,9 @@ export default function App() {
   }
 
   saveData();
-}, [ongoingTasks, upcomingTasks, archivedTasks]);
-  useEffect(() => {
+}, [ongoingTasks, upcomingTasks, archivedTasks, isLoaded]);
+
+useEffect(() => {
   setSelectedTask(null);
 }, [view]);
 
