@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { supabase } from "./supabase";
 const API_URL = "https://marine-organizer.onrender.com";
 const users = ["MV", "GI", "GN", "DV", "YG"];
 const progressColumns = ["DG1", "DG2", "DG3", "ME"];
@@ -28,16 +29,16 @@ export default function App() {
   const [archivedTasks, setArchivedTasks] = useState([]);
 
   // 🔹 ЗАРЕЖДАНЕ ОТ BACKEND
-useEffect(() => {
-  fetch(`${API_URL}/data`)
-    .then(res => res.json())
-    .then(data => {
-      setOngoingTasks(data.ongoing || []);
-      setUpcomingTasks(data.upcoming || []);
-      setArchivedTasks(data.archived || []);
-      setIsLoaded(true);
-    });
-}, []);
+//useEffect(() => {
+ // fetch(`${API_URL}/data`)
+ //   .then(res => res.json())
+ //   .then(data => {
+ //     setOngoingTasks(data.ongoing || []);
+ //     setUpcomingTasks(data.upcoming || []);
+ //     setArchivedTasks(data.archived || []);
+ //     setIsLoaded(true);
+ //   });
+//}, []);
 
 // 🔹 ЗАПИС КЪМ BACKEND
 useEffect(() => {
@@ -78,6 +79,39 @@ useEffect(() => {
   });
   return progress;
 }
+useEffect(() => {
+  const getData = async () => {
+    try {
+      // 🟢 ONGOING
+      const { data: ongoingData, error: ongoingError } = await supabase
+        .from("tasks")
+        .select("*")
+        .eq("type", "ongoing");
+
+      if (ongoingError) throw ongoingError;
+
+      // 🟢 ARCHIVED
+      const { data: archivedData, error: archivedError } = await supabase
+        .from("tasks")
+        .select("*")
+        .eq("type", "archived");
+
+      if (archivedError) throw archivedError;
+
+      console.log("ONGOING:", ongoingData);
+      console.log("ARCHIVED:", archivedData);
+
+      setOngoingTasks(ongoingData || []);
+      setArchivedTasks(archivedData || []);
+      setIsLoaded(true);
+
+    } catch (err) {
+      console.error("FETCH ERROR:", err);
+    }
+  };
+
+  getData();
+}, []);
 
  function ensureProgress(task) {
   if (!task) return null;
@@ -98,19 +132,36 @@ useEffect(() => {
 }
 
 
-  function addOngoingTask() {
-    setOngoingTasks(tasks => [...tasks, {
-      id: Date.now(),
-      job: "",
-      workOrder: "",
-      contact: "",
-      seInCharge: users[0],
-      status: "In progress",
-      files: [],
-      progressColumns: ["DG1", "DG2", "DG3", "ME"],
-      progress: createEmptyProgress(["DG1", "DG2", "DG3", "ME"])
-    }]);
+ async function addOngoingTask() {
+  const newTask = {
+  job: "",
+  workOrder: "",
+  contact: "",
+  seInCharge: users[0],
+  status: "In progress",
+  type: "ongoing", // 🔥 ТОВА Е ВАЖНО
+  files: [],
+    progressColumns: ["DG1", "DG2", "DG3", "ME"],
+    progress: createEmptyProgress(["DG1", "DG2", "DG3", "ME"])
+  };
+
+  try {
+    const { data, error } = await supabase
+      .from("tasks")
+      .insert([newTask])
+      .select();
+
+    if (error) throw error;
+
+    console.log("INSERTED:", data);
+
+    // добавяме към UI
+    setOngoingTasks(tasks => [...tasks, ...data]);
+
+  } catch (err) {
+    console.error("INSERT ERROR:", err);
   }
+}
 
  function addUpcomingTask() {
   setUpcomingTasks(tasks => [...tasks, {
@@ -436,7 +487,7 @@ const isOngoing = ongoingTasks.some(t => t.id === currentTask.id);
         />
 
         <h3 style={{ marginTop: 16 }}>Files</h3>
-        {currentTask.files?.map((f, i) => (
+       {(Array.isArray(currentTask.files) ? currentTask.files : []).map((f, i) => (
           <div key={i}>
             📎 <a href={f.url} target="_blank" rel="noreferrer">{f.name}</a>
           </div>
@@ -467,59 +518,114 @@ const isOngoing = ongoingTasks.some(t => t.id === currentTask.id);
     <tr key={task.id}>
 
       <td>
-        <textarea
-          defaultValue={task.job}
-          onBlur={e =>
-            setOngoingTasks(tasks =>
-              tasks.map(t =>
-                t.id === task.id ? { ...t, job: e.target.value } : t
-              )
-            )
-          }
-        />
+       <textarea
+  defaultValue={task.job}
+  onBlur={async e => {
+    const value = e.target.value;
+
+    // update UI
+    setOngoingTasks(tasks =>
+      tasks.map(t =>
+        t.id === task.id ? { ...t, job: value } : t
+      )
+    );
+
+    // 🔥 update Supabase
+    try {
+      const { error } = await supabase
+        .from("tasks")
+        .update({ job: value })
+        .eq("id", task.id);
+
+      if (error) throw error;
+
+    } catch (err) {
+      console.error("UPDATE ERROR:", err);
+    }
+  }}
+/>
       </td>
 
       <td>
-        <textarea
-          defaultValue={task.workOrder}
-          onBlur={e =>
-            setOngoingTasks(tasks =>
-              tasks.map(t =>
-                t.id === task.id ? { ...t, workOrder: e.target.value } : t
-              )
-            )
-          }
-        />
+       <textarea
+  defaultValue={task.workOrder}
+  onBlur={async e => {
+    const value = e.target.value;
+
+    setOngoingTasks(tasks =>
+      tasks.map(t =>
+        t.id === task.id ? { ...t, workOrder: value } : t
+      )
+    );
+
+    try {
+      const { error } = await supabase
+        .from("tasks")
+        .update({ workOrder: value })
+        .eq("id", task.id);
+
+      if (error) throw error;
+    } catch (err) {
+      console.error("UPDATE ERROR:", err);
+    }
+  }}
+/>
       </td>
 
       <td>
-        <textarea
-          defaultValue={task.contact}
-          onBlur={e =>
-            setOngoingTasks(tasks =>
-              tasks.map(t =>
-                t.id === task.id ? { ...t, contact: e.target.value } : t
-              )
-            )
-          }
-        />
+       <textarea
+  defaultValue={task.contact}
+  onBlur={async e => {
+    const value = e.target.value;
+
+    setOngoingTasks(tasks =>
+      tasks.map(t =>
+        t.id === task.id ? { ...t, contact: value } : t
+      )
+    );
+
+    try {
+      const { error } = await supabase
+        .from("tasks")
+        .update({ contact: value })
+        .eq("id", task.id);
+
+      if (error) throw error;
+    } catch (err) {
+      console.error("UPDATE ERROR:", err);
+    }
+  }}
+/>
       </td>
 
       <td>
-        <select
-          defaultValue={task.seInCharge}
-          onChange={e =>
-            setOngoingTasks(tasks =>
-              tasks.map(t =>
-                t.id === task.id ? { ...t, seInCharge: e.target.value } : t
-              )
-            )
-          }
-        >
-          {users.map(u => (
-            <option key={u}>{u}</option>
-          ))}
-        </select>
+      <select
+  defaultValue={task.seInCharge}
+  onChange={async e => {
+    const value = e.target.value;
+
+    setOngoingTasks(tasks =>
+      tasks.map(t =>
+        t.id === task.id ? { ...t, seInCharge: value } : t
+      )
+    );
+
+    try {
+      const { error } = await supabase
+        .from("tasks")
+        .update({ seInCharge: value })
+        .eq("id", task.id);
+
+      if (error) throw error;
+    } catch (err) {
+      console.error("UPDATE ERROR:", err);
+    }
+  }}
+>
+  {users.map(u => (
+    <option key={u}>{u}</option>
+  ))}
+</select>
       </td>
 
       <td>{task.status}</td>
@@ -532,16 +638,35 @@ const isOngoing = ongoingTasks.some(t => t.id === currentTask.id);
 
       <td>
         <button
-          onClick={() => {
-            const taskToArchive = task;
-            setOngoingTasks(tasks =>
-              tasks.filter(t => t.id !== task.id)
-            );
-            setArchivedTasks(tasks => [
-              ...tasks,
-              { ...taskToArchive, archivedAt: new Date().toLocaleString() }
-            ]);
-          }}
+         onClick={async () => {
+  try {
+    const { error } = await supabase
+      .from("tasks")
+      .update({
+        type: "archived",
+        archivedAt: new Date().toLocaleString()
+      })
+      .eq("id", task.id);
+
+    if (error) throw error;
+
+    // махаме от ongoing UI
+    setOngoingTasks(tasks =>
+      tasks.filter(t => t.id !== task.id)
+    );
+    setArchivedTasks(tasks => [
+  ...tasks,
+  {
+    ...task,
+    type: "archived",
+    archivedAt: new Date().toLocaleString()
+  }
+]);
+
+  } catch (err) {
+    console.error("ARCHIVE ERROR:", err);
+  }
+}}
           style={{ color: "red", fontWeight: "bold" }}
         >
           X
@@ -720,30 +845,44 @@ const isOngoing = ongoingTasks.some(t => t.id === currentTask.id);
 
               {/* Permanent delete */}
               <td>
-                <button
-                 onClick={async () => {
-  if (task.files && task.files.length > 0) {
-    const fileNames = task.files.map(f =>
-      f.url.split("/uploads/")[1]
-    );
+  <button
+    onClick={async () => {
+      try {
+        // 🟢 1. трием файловете (ако има)
+        if (Array.isArray(task.files) && task.files.length > 0) {
+          const fileNames = task.files.map(f =>
+            f.url.split("/uploads/")[1]
+          );
 
-    await fetch(`${API_URL}/delete-files`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ files: fileNames }),
-});
-  }
+          await fetch(`${API_URL}/delete-files`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ files: fileNames }),
+          });
+        }
 
-  setArchivedTasks(tasks =>
-    tasks.filter(t => t.id !== task.id)
-  );
-}}
+        // 🔥 2. трием от Supabase
+        const { error } = await supabase
+          .from("tasks")
+          .delete()
+          .eq("id", task.id);
 
-                  style={{ color: "darkred", fontWeight: "bold" }}
-                >
-                  Delete
-                </button>
-              </td>
+        if (error) throw error;
+
+        // 🟢 3. махаме от UI
+        setArchivedTasks(tasks =>
+          tasks.filter(t => t.id !== task.id)
+        );
+
+      } catch (err) {
+        console.error("DELETE ERROR:", err);
+      }
+    }}
+    style={{ color: "darkred", fontWeight: "bold" }}
+  >
+    Delete
+  </button>
+</td>
 
             </tr>
           ))}
