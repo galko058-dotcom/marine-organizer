@@ -57,6 +57,39 @@ export default function App() {
   const [upcomingTasks, setUpcomingTasks] = useState([]);
   const [archivedTasks, setArchivedTasks] = useState([]);
 
+  async function deleteFile(taskId, fileUrl) {
+  try {
+    // 🟢 1. взимаме името на файла от URL-а
+    const fileName = fileUrl.split("/task-files/")[1];
+
+    // 🟢 2. трием от Supabase Storage
+    const { error: storageError } = await supabase.storage
+      .from("task-files")
+      .remove([fileName]);
+
+    if (storageError) throw storageError;
+
+    // 🟢 3. намираме task-а
+    const task =
+      ongoingTasks.find(t => t.id == taskId) ||
+      upcomingTasks.find(t => t.id == taskId);
+
+    if (!task) return;
+
+    // 🟢 4. махаме файла от масива
+    const updatedFiles = (task.files || []).filter(
+      f => f.url !== fileUrl
+    );
+
+    // 🟢 5. update в DB + UI
+    updateTask(taskId, { files: updatedFiles });
+
+  } catch (err) {
+    console.error("DELETE FILE ERROR:", err);
+    alert("Delete failed");
+  }
+}
+
   async function updateTask(taskId, updates) {
   // 🟢 update UI
   setOngoingTasks(tasks =>
@@ -256,34 +289,41 @@ async function addUpcomingTask() {
 }
 
  async function addFileToTask(taskId, file) {
-  const formData = new FormData();
-  formData.append("file", file);
+  console.log("START UPLOAD:", file);
 
-  const response = await fetch(`${API_URL}/upload`, {
-    method: "POST",
-    body: formData,
-  });
+ const ext = file.name.split(".").pop();
 
-  const data = await response.json();
+ const fileName = `${Date.now()}.${ext}`;
+
+  const { data, error } = await supabase.storage
+    .from("task-files")
+    .upload(fileName, file);
+
+  if (error) {
+    console.error("UPLOAD ERROR:", error);
+    alert("Upload failed!");
+    return;
+  }
+
+  console.log("UPLOAD SUCCESS:", data);
+
+  const { data: publicUrlData } = supabase.storage
+    .from("task-files")
+    .getPublicUrl(fileName);
 
   const fileData = {
-    name: data.originalName,
-    url: `${API_URL}/uploads/${data.fileName}`,
+    name: file.name,
+    url: publicUrlData.publicUrl,
   };
 
-  // 👉 намираме task (ВАЖНО: ==)
   const task =
     ongoingTasks.find(t => t.id == taskId) ||
     upcomingTasks.find(t => t.id == taskId);
 
-  if (!task) {
-    console.error("TASK NOT FOUND");
-    return;
-  }
+  if (!task) return;
 
   const updatedFiles = [...(task.files || []), fileData];
 
-  // 🟢 update ongoing
   updateTask(taskId, { files: updatedFiles });
 }
 
@@ -557,8 +597,26 @@ console.log("CURRENT TASK:", currentTask);
 
 <h3 style={{ marginTop: 16 }}>Files</h3>
 {(Array.isArray(currentTask.files) ? currentTask.files : []).map((f, i) => (
-  <div key={i}>
-    📎 <a href={f.url} target="_blank" rel="noreferrer">{f.name}</a>
+  <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+    📎 
+    <a href={f.url} target="_blank" rel="noreferrer">{f.name}</a>
+
+    <button
+     onClick={() => {
+  if (window.confirm("Сигурен ли си, че искаш да изтриеш файла?")) {
+    deleteFile(currentTask.id, f.url);
+  }
+}}
+      style={{
+        color: "red",
+        border: "none",
+        background: "transparent",
+        cursor: "pointer",
+        fontWeight: "bold"
+      }}
+    >
+      X
+    </button>
   </div>
 ))}
 
@@ -588,10 +646,10 @@ console.log("CURRENT TASK:", currentTask);
   <tr>
     <th style={{ width: "25%" }}>Job</th>
     <th style={{ width: "20%" }}>WO</th>
-    <th style={{ width: "10%" }}>Contact</th>
+    <th style={{ width: "15%" }}>Contact</th>
     <th style={{ width: "10%" }}>SE</th>
     <th style={{ width: "10%" }}>Status</th>
-    <th style={{ width: "15%" }}>Progress & Files</th>
+    <th style={{ width: "10%" }}>Progress & Files</th>
     <th style={{ width: "10%" }}>Delete</th>
   </tr>
 </thead>
@@ -729,8 +787,8 @@ console.log("CURRENT TASK:", currentTask);
 
       {/* Job */}
       <td>
-        <textarea
-  defaultValue={task.job}
+      <AutoTextarea
+  value={task.job || ""}
   onBlur={e => {
     updateTask(task.id, { job: e.target.value });
   }}
@@ -739,8 +797,8 @@ console.log("CURRENT TASK:", currentTask);
 
       {/* WO */}
       <td>
-        <textarea
-  defaultValue={task.workOrder}
+       <AutoTextarea
+  value={task.workOrder || ""}
   onBlur={e => {
     updateTask(task.id, { workOrder: e.target.value });
   }}
@@ -749,8 +807,8 @@ console.log("CURRENT TASK:", currentTask);
 
       {/* Expected */}
       <td>
-       <textarea
-  defaultValue={task.expectedAt}
+       <AutoTextarea
+  value={task.expectedAt || ""}
   onBlur={e => {
     updateTask(task.id, { expectedAt: e.target.value });
   }}
@@ -860,16 +918,14 @@ console.log("CURRENT TASK:", currentTask);
       try {
         // 🟢 1. трием файловете (ако има)
         if (Array.isArray(task.files) && task.files.length > 0) {
-          const fileNames = task.files.map(f =>
-            f.url.split("/uploads/")[1]
-          );
+  const fileNames = task.files.map(f =>
+    f.url.split("/task-files/")[1]
+  );
 
-          await fetch(`${API_URL}/delete-files`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ files: fileNames }),
-          });
-        }
+  await supabase.storage
+    .from("task-files")
+    .remove(fileNames);
+}
 
         // 🔥 2. трием от Supabase
         const { error } = await supabase
