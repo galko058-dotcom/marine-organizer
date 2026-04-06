@@ -454,6 +454,7 @@ console.log("CURRENT TASK:", currentTask);
       updatedProgress[newColumnName][row] = false;
     });
 
+    // 🟢 UI update
     setOngoingTasks(tasks =>
       tasks.map(t =>
         t.id === currentTask.id
@@ -461,15 +462,29 @@ console.log("CURRENT TASK:", currentTask);
               ...t,
               progressColumns: updatedColumns,
               progress: updatedProgress
-              
             }
           : t
       )
     );
-    
+
+    // 🔥 SAVE в Supabase (ТУК БЕШЕ ПРОБЛЕМЪТ)
+    try {
+      const { data, error } = await supabase
+        .from("tasks")
+        .update({
+          progressColumns: updatedColumns,
+          progress: updatedProgress
+        })
+       .eq("id", selectedTaskId)
+       .select();
+        
+        console.log("AFTER SAVE:", data);
+      if (error) throw error;
+
+    } catch (err) {
+      console.error("ADD COLUMN ERROR:", err);
+    }
   }}
-  
-  style={{ marginBottom: 10 }}
 >
   + Add Column
 </button>
@@ -505,13 +520,20 @@ console.log("CURRENT TASK:", currentTask);
 
   // 🔥 SAVE в Supabase
   try {
-    const { error } = await supabase
-      .from("tasks")
-      .update({
-        progressColumns: updatedColumns,
-        progress: updatedProgress
-      })
-      .eq("id", currentTask.id);
+const { data, error } = await supabase
+  .from("tasks")
+  .update({
+    progressColumns: updatedColumns,
+    progress: updatedProgress
+  })
+  .eq("id", currentTask.id.trim())
+  .select();
+
+console.log("AFTER SAVE:", data);
+
+if (error) {
+  console.error("ADD COLUMN ERROR:", error);
+}
 
     if (error) throw error;
 
@@ -778,6 +800,7 @@ console.log("CURRENT TASK:", currentTask);
             {
               ...task,
               type: "archived",
+              originalType: task.type, // 🔥 КЛЮЧОВО
               archivedAt: new Date().toLocaleString()
             }
           ]);
@@ -913,7 +936,7 @@ console.log("CURRENT TASK:", currentTask);
         originalType: task.type,
         archivedAt: new Date().toLocaleString()
       })
-      .eq("id", task.id);
+      .eq("id", task.id);      
 
     if (error) throw error;
 
@@ -927,6 +950,7 @@ console.log("CURRENT TASK:", currentTask);
       {
         ...task,
         type: "archived",
+        originalType: task.type, // 🔥 ТОВА ЛИПСВА
         archivedAt: new Date().toLocaleString()
       }
     ]);
@@ -979,6 +1003,7 @@ console.log("CURRENT TASK:", currentTask);
                 <button
                   onClick={async () => {
   try {
+    console.log("RESTORE TASK:", task);
     const newType = task.originalType || "ongoing";
 
     // 🔥 1. update в Supabase (ТОВА ЛИПСВАШЕ ДОСЕГА)
@@ -999,17 +1024,18 @@ console.log("CURRENT TASK:", currentTask);
     );
 
     // 🟢 3. добавяме в правилния списък
-    if (newType === "ongoing") {
-      setOngoingTasks(tasks => [
-        ...tasks,
-        { ...task, type: newType }
-      ]);
-    } else {
-      setUpcomingTasks(tasks => [
-        ...tasks,
-        { ...task, type: newType }
-      ]);
-    }
+   const restoredTask = {
+  ...task,
+  type: newType,
+  archivedAt: null,
+  originalType: null
+};
+
+if (newType === "ongoing") {
+  setOngoingTasks(tasks => [...tasks, restoredTask]);
+} else {
+  setUpcomingTasks(tasks => [...tasks, restoredTask]);
+}
 
   } catch (err) {
     console.error("RESTORE ERROR:", err);
