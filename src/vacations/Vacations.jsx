@@ -41,13 +41,14 @@ export default function Vacations() {
   }
 
   const today = new Date();
+  const [currentDate, setCurrentDate] = useState(new Date());
 
   function getDaysInMonth(year, month) {
     return new Date(year, month + 1, 0).getDate();
   }
 
-  const year = today.getFullYear();
-  const month = today.getMonth();
+ const year = currentDate.getFullYear();
+const month = currentDate.getMonth();
 
   const monthName = new Date(year, month).toLocaleString("en-US", {
     month: "long"
@@ -68,6 +69,18 @@ export default function Vacations() {
   GN: "#f59e0b",
   YG: "#a855f7"
 };
+
+function prevMonth() {
+  setCurrentDate(
+    new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
+  );
+}
+
+function nextMonth() {
+  setCurrentDate(
+    new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
+  );
+}
 
  function getUsersForDay(day) {
   const date = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -193,9 +206,22 @@ export default function Vacations() {
       </table>
 
       {/* CALENDAR HEADER */}
-      <h3 style={{ marginTop: 30 }}>
-        {monthName} {year}
-      </h3>
+     <div
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 30
+  }}
+>
+  <button onClick={prevMonth}>←</button>
+
+  <h3 style={{ margin: 0 }}>
+    {monthName} {year}
+  </h3>
+
+  <button onClick={nextMonth}>→</button>
+</div>
 
       {/* WEEK DAYS */}
       <div
