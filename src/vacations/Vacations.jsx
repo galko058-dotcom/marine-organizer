@@ -1,0 +1,266 @@
+import { useEffect, useState } from "react";
+import { supabase } from "../supabase";
+
+export default function Vacations() {
+  const [balances, setBalances] = useState([]);
+  const [vacations, setVacations] = useState([]);
+  const [selectedUser, setSelectedUser] = useState("MV");
+
+  useEffect(() => {
+    fetchBalances();
+    fetchVacations();
+  }, []);
+
+  async function fetchVacations() {
+    const { data } = await supabase
+      .from("vacations")
+      .select("*");
+
+    setVacations(data || []);
+  }
+
+  async function fetchBalances() {
+    const { data } = await supabase
+      .from("vacation_balances")
+      .select("*");
+
+    setBalances(data || []);
+  }
+
+  async function updateBalance(user, value) {
+    await supabase
+      .from("vacation_balances")
+      .update({ days_left: value })
+      .eq("user_name", user);
+
+    setBalances(prev =>
+      prev.map(b =>
+        b.user_name === user ? { ...b, days_left: value } : b
+      )
+    );
+  }
+
+  const today = new Date();
+
+  function getDaysInMonth(year, month) {
+    return new Date(year, month + 1, 0).getDate();
+  }
+
+  const year = today.getFullYear();
+  const month = today.getMonth();
+
+  const monthName = new Date(year, month).toLocaleString("en-US", {
+    month: "long"
+  });
+
+  const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+  const days = Array.from(
+    { length: getDaysInMonth(year, month) },
+    (_, i) => i + 1
+  );
+  const firstDay = new Date(year, month, 1).getDay();
+ const offset = (firstDay + 6) % 7; // прави Monday първи
+
+ const userColors = {
+  MV: "#22c55e",
+  GI: "#3b82f6",
+  GN: "#f59e0b",
+  YG: "#a855f7"
+};
+
+ function getUsersForDay(day) {
+  const date = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+  return vacations
+    .filter(v => v.date === date)
+    .map(v => v.user_name);
+}
+
+  async function addVacationDay(day) {
+  const date = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+  const existing = vacations.find(
+    v => v.date === date && v.user_name === selectedUser
+  );
+
+  // 🔴 ако има → махаме
+  if (existing) {
+    await supabase
+      .from("vacations")
+      .delete()
+      .eq("id", existing.id);
+
+    setVacations(prev =>
+      prev.filter(v => v.id !== existing.id)
+    );
+
+    return;
+  }
+
+  // 🛑 защита (реално няма да се стигне, но е safe)
+  if (existing) return;
+
+  // 🟢 add
+  const { data, error } = await supabase
+    .from("vacations")
+    .insert([
+      {
+        user_name: selectedUser,
+        date
+      }
+    ])
+    .select();
+
+  if (!error) {
+    setVacations(prev => [...prev, ...data]);
+  }
+}
+
+ function isDayBooked(day) {
+  const date = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+  return vacations.some(
+    v => v.date === date && v.user_name === selectedUser
+  );
+}
+
+  return (
+    <div>
+      <h2>Vacations</h2>
+      <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+  {Object.keys(userColors).map(user => (
+    <div
+      key={user}
+      onClick={() => setSelectedUser(user)}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        cursor: "pointer",
+        padding: "4px 8px",
+        borderRadius: 6,
+        background: selectedUser === user ? "#334155" : "transparent"
+      }}
+    >
+      <div
+        style={{
+          width: 10,
+          height: 10,
+          borderRadius: "50%",
+          background: userColors[user]
+        }}
+      />
+      <span>{user}</span>
+    </div>
+  ))}
+</div>
+      <div style={{ marginBottom: 12 }}>
+  
+</div>
+
+      {/* TABLE */}
+      <table border="1" cellPadding="8">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Remaining Days</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {balances.map(b => (
+            <tr key={b.user_name}>
+              <td>{b.user_name}</td>
+
+              <td>
+                <select
+                  value={b.days_left}
+                  onChange={e =>
+                    updateBalance(b.user_name, Number(e.target.value))
+                  }
+                >
+                  {Array.from({ length: 21 }, (_, i) => (
+                    <option key={i} value={i}>
+                      {i}
+                    </option>
+                  ))}
+                </select>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* CALENDAR HEADER */}
+      <h3 style={{ marginTop: 30 }}>
+        {monthName} {year}
+      </h3>
+
+      {/* WEEK DAYS */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(7, 1fr)",
+          maxWidth: 400,
+          marginBottom: 8
+        }}
+      >
+        {weekDays.map(d => (
+          <div key={d} style={{ textAlign: "center", fontWeight: "bold" }}>
+            {d}
+          </div>
+        ))}
+      </div>
+
+      {/* CALENDAR GRID */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(7, 1fr)",
+          gap: 8,
+          maxWidth: 400
+        }}
+      >
+        {Array.from({ length: offset }).map((_, i) => (
+  <div key={"empty-" + i}></div>
+))}
+        {days.map(day => {
+         const users = getUsersForDay(day);
+
+         
+
+          return (
+            <div
+              key={day}
+              onClick={() => addVacationDay(day)}
+              style={{
+                padding: 10,
+               background: "#1e293b",
+                textAlign: "center",
+                cursor: "pointer",
+                borderRadius: 6
+              }}
+            >
+             <div>{day}</div>
+
+<div style={{ display: "flex", gap: 4, marginTop: 4, justifyContent: "center" }}>
+  {users.map(u => (
+    <div
+      key={u + "-" + day}
+      style={{
+        width: 6,
+        height: 6,
+        borderRadius: "50%",
+        background: userColors[u]
+      }}
+    />
+  ))}
+</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
