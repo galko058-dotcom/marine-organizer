@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
-import Vacations from "./vacations/vacations";
+import Vacations from "./vacations/Vacations";
 const API_URL = "https://marine-organizer.onrender.com";
 const users = ["MV", "GI", "GN", "DV", "YG"];
 const progressColumns = ["DG1", "DG2", "DG3", "ME"];
