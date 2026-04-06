@@ -52,10 +52,21 @@ export default function App() {
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [isLoaded, setIsLoaded] = useState(false);
-
+  const [bg, setBg] = useState(() => {
+  return localStorage.getItem("bg") || "dark";
+});
+ const backgrounds = {
+  dark: "linear-gradient(135deg, #020617, #0f172a, #1e293b)",
+  ocean: "linear-gradient(135deg, #020617, #0a2540, #1e3a5f)",
+  steel: "linear-gradient(135deg, #111827, #1f2937, #374151)",
+  sunset: "linear-gradient(135deg, #7c2d12, #1e293b, #020617)"
+};
   const [ongoingTasks, setOngoingTasks] = useState([]);
   const [upcomingTasks, setUpcomingTasks] = useState([]);
   const [archivedTasks, setArchivedTasks] = useState([]);
+  useEffect(() => {
+  localStorage.setItem("bg", bg);
+}, [bg]);
 
   async function deleteFile(taskId, fileUrl) {
   try {
@@ -641,24 +652,55 @@ console.log("CURRENT TASK:", currentTask);
       <div>
         <h2>Ongoing</h2>
         <button onClick={addOngoingTask}>+ Add task</button>
-        <table border="1" cellPadding="8" style={{ width: "100%", marginTop: 12 }}>
-         <thead>
+       <table
+  style={{
+    width: "100%",
+    marginTop: 12,
+    borderCollapse: "collapse",
+    background: "#020617",
+    borderRadius: 8,
+    overflow: "hidden"
+  }}
+>
+         <thead style={{ background: "#0f172a" }}>
   <tr>
-    <th style={{ width: "25%" }}>Job</th>
-    <th style={{ width: "20%" }}>WO</th>
-    <th style={{ width: "15%" }}>Contact</th>
-    <th style={{ width: "10%" }}>SE</th>
-    <th style={{ width: "10%" }}>Status</th>
-    <th style={{ width: "10%" }}>Progress & Files</th>
-    <th style={{ width: "10%" }}>Delete</th>
+    <th style={{ width: "25%", padding: 10, textAlign: "left", color: "#38bdf8" }}>
+  Job
+</th>
+    <th style={{ width: "20%", padding: 10, textAlign: "left", color: "#38bdf8" }}>
+  WO
+</th>
+    <th style={{ width: "15%", padding: 10, textAlign: "left", color: "#38bdf8" }}>
+  Contact
+</th>
+   <th style={{ width: "10%", padding: 10, textAlign: "left", color: "#38bdf8" }}>
+  SE
+</th>
+    <th style={{ width: "10%", padding: 10, textAlign: "left", color: "#38bdf8" }}>
+  Status
+</th>
+   <th style={{ width: "10%", padding: 10, textAlign: "left", color: "#38bdf8" }}>
+  Progess & Files
+</th>
+    <th style={{ width: "10%", padding: 10, textAlign: "left", color: "#38bdf8" }}>
+  Delete
+</th>
   </tr>
 </thead>
           <tbody>
   {ongoingTasks.map(task => (
-   <tr key={task.id}>
+  <tr
+  key={task.id}
+  style={{
+    borderTop: "1px solid #1e293b",
+    transition: "0.2s"
+  }}
+  onMouseEnter={e => (e.currentTarget.style.background = "#0f172a")}
+  onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+>
 
   {/* Job */}
-  <td>
+  <td style={{ padding: 10 }}>
     <AutoTextarea
       value={task.job}
       onBlur={e => {
@@ -668,7 +710,7 @@ console.log("CURRENT TASK:", currentTask);
   </td>
 
   {/* WO */}
-  <td>
+  <td style={{ padding: 10 }}>
     <AutoTextarea
       value={task.workOrder}
       onBlur={e => {
@@ -678,7 +720,7 @@ console.log("CURRENT TASK:", currentTask);
   </td>
 
   {/* Contact */}
-  <td>
+  <td style={{ padding: 10 }}>
     <AutoTextarea
       value={task.contact}
       onBlur={e => {
@@ -688,7 +730,7 @@ console.log("CURRENT TASK:", currentTask);
   </td>
 
   {/* SE */}
-  <td>
+  <td style={{ padding: 10 }}>
     <select
       defaultValue={task.seInCharge}
       onChange={e => {
@@ -702,26 +744,27 @@ console.log("CURRENT TASK:", currentTask);
   </td>
 
   {/* Status */}
-  <td>{task.status}</td>
+ <td style={{ padding: 10 }}>{task.status}</td>
 
   {/* Open */}
-  <td>
+  <td style={{ padding: 10 }}>
     <button onClick={() => setSelectedTaskId(task.id)}>
       Open
     </button>
   </td>
 
   {/* Delete */}
-  <td>
+  <td style={{ padding: 10 }}>
     <button
       onClick={async () => {
         try {
           const { error } = await supabase
             .from("tasks")
-            .update({
-              type: "archived",
-              archivedAt: new Date().toLocaleString()
-            })
+            .update({            
+             type: "archived",
+             originalType: task.type, // 🔥 важно
+  archivedAt: new Date().toLocaleString()
+})
             .eq("id", task.id);
 
           if (error) throw error;
@@ -763,30 +806,51 @@ console.log("CURRENT TASK:", currentTask);
         <h2>Upcoming</h2>
         <button onClick={addUpcomingTask}>+ Add task</button>
        <table
-  border="1"
-  cellPadding="8"
   style={{
     width: "100%",
     marginTop: 12,
-    tableLayout: "fixed"
+    borderCollapse: "collapse",
+    background: "#020617",
+    borderRadius: 8,
+    overflow: "hidden"
   }}
 >
-          <thead>
+         <thead style={{ background: "#0f172a" }}>
             <tr>
-              <th>Job</th>
-              <th>WO</th>
-              <th>Expected</th>
-              <th>SE</th>
-              <th>Progress & Files</th>
-              <th>Delete</th>
+              <th style={{ padding: 10, textAlign: "left", color: "#38bdf8" }}>
+              Job
+              </th>
+              <th style={{ padding: 10, textAlign: "left", color: "#38bdf8" }}>
+              WO
+              </th>
+              <th style={{ padding: 10, textAlign: "left", color: "#38bdf8" }}>
+              Expected
+              </th>
+              <th style={{ padding: 10, textAlign: "left", color: "#38bdf8" }}>
+              SE
+              </th>
+              <th style={{ padding: 10, textAlign: "left", color: "#38bdf8" }}>
+              Progress & Files
+              </th>
+              <th style={{ padding: 10, textAlign: "left", color: "#38bdf8" }}>
+              Delete
+              </th>
             </tr>
           </thead>
           <tbody>
   {upcomingTasks.map(task => (
-    <tr key={task.id}>
+    <tr
+    key={task.id}
+    style={{
+      borderTop: "1px solid #1e293b",
+      transition: "0.2s"
+    }}
+    onMouseEnter={e => (e.currentTarget.style.background = "#0f172a")}
+    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+  >
 
       {/* Job */}
-      <td>
+      <td style={{ padding: 10 }}>
       <AutoTextarea
   value={task.job || ""}
   onBlur={e => {
@@ -796,7 +860,7 @@ console.log("CURRENT TASK:", currentTask);
       </td>
 
       {/* WO */}
-      <td>
+      <td style={{ padding: 10 }}>
        <AutoTextarea
   value={task.workOrder || ""}
   onBlur={e => {
@@ -806,7 +870,7 @@ console.log("CURRENT TASK:", currentTask);
       </td>
 
       {/* Expected */}
-      <td>
+      <td style={{ padding: 10 }}>
        <AutoTextarea
   value={task.expectedAt || ""}
   onBlur={e => {
@@ -816,7 +880,7 @@ console.log("CURRENT TASK:", currentTask);
       </td>
 
       {/* SE */}
-      <td>
+      <td style={{ padding: 10 }}>
        <select
   defaultValue={task.seInCharge}
   onChange={e => {
@@ -830,25 +894,47 @@ console.log("CURRENT TASK:", currentTask);
       </td>
 
       {/* Progress & Files */}
-      <td>
+      <td style={{ padding: 10 }}>
         <button onClick={() => setSelectedTaskId(task.id)}>
           Open
         </button>
       </td>
 
       {/* Delete */}
-      <td>
+      <td style={{ padding: 10 }}>
         <button
-          onClick={() => {
-            const taskToArchive = task;
-            setUpcomingTasks(tasks =>
-              tasks.filter(t => t.id !== task.id)
-            );
-            setArchivedTasks(tasks => [
-              ...tasks,
-              { ...taskToArchive, archivedAt: new Date().toLocaleString() }
-            ]);
-          }}
+          onClick={async () => {
+  try {
+    // 🔥 1. update в Supabase
+    const { error } = await supabase
+      .from("tasks")
+      .update({
+        type: "archived",
+        originalType: task.type,
+        archivedAt: new Date().toLocaleString()
+      })
+      .eq("id", task.id);
+
+    if (error) throw error;
+
+    // 🟢 2. update UI
+    setUpcomingTasks(tasks =>
+      tasks.filter(t => t.id !== task.id)
+    );
+
+    setArchivedTasks(tasks => [
+      ...tasks,
+      {
+        ...task,
+        type: "archived",
+        archivedAt: new Date().toLocaleString()
+      }
+    ]);
+
+  } catch (err) {
+    console.error("ARCHIVE ERROR:", err);
+  }
+}}
           style={{ color: "red", fontWeight: "bold" }}
         >
           X
@@ -891,20 +977,44 @@ console.log("CURRENT TASK:", currentTask);
               {/* Restore */}
               <td>
                 <button
-                  onClick={() => {
-                    const restoredTask = { ...task };
-                    delete restoredTask.archivedAt;
+                  onClick={async () => {
+  try {
+    const newType = task.originalType || "ongoing";
 
-                    setArchivedTasks(tasks =>
-                      tasks.filter(t => t.id !== task.id)
-                    );
+    // 🔥 1. update в Supabase (ТОВА ЛИПСВАШЕ ДОСЕГА)
+    const { error } = await supabase
+      .from("tasks")
+      .update({
+        type: newType,
+        archivedAt: null,
+        originalType: null
+      })
+      .eq("id", task.id);
 
-                    // Връщаме го в Ongoing
-                    setOngoingTasks(tasks => [
-                      ...tasks,
-                      restoredTask
-                    ]);
-                  }}
+    if (error) throw error;
+
+    // 🟢 2. махаме от archive UI
+    setArchivedTasks(tasks =>
+      tasks.filter(t => t.id !== task.id)
+    );
+
+    // 🟢 3. добавяме в правилния списък
+    if (newType === "ongoing") {
+      setOngoingTasks(tasks => [
+        ...tasks,
+        { ...task, type: newType }
+      ]);
+    } else {
+      setUpcomingTasks(tasks => [
+        ...tasks,
+        { ...task, type: newType }
+      ]);
+    }
+
+  } catch (err) {
+    console.error("RESTORE ERROR:", err);
+  }
+}}
                   style={{ color: "green", fontWeight: "bold" }}
                 >
                   Restore
@@ -960,12 +1070,34 @@ console.log("CURRENT TASK:", currentTask);
 }
 
   return (
-  <div>
+  <div
+    style={{
+      minHeight: "100vh",
+      background: backgrounds[bg],
+      color: "#e2e8f0"
+    }}
+  >
     <header style={{ background: "#1e293b", color: "white", padding: 12 }}>
       <button onClick={() => setView("home")}>Home</button>{" "}
       <button onClick={() => setView("ongoing")}>Ongoing</button>{" "}
       <button onClick={() => setView("upcoming")}>Upcoming</button>{" "}
       <button onClick={() => setView("archive")}>Archive</button>
+      <select
+  value={bg}
+  onChange={e => setBg(e.target.value)}
+  style={{
+    marginLeft: 20,
+    padding: 5,
+    background: "#020617",
+    color: "#38bdf8",
+    border: "1px solid #334155"
+  }}
+>
+  <option value="dark">Dark</option>
+  <option value="ocean">Ocean</option>
+  <option value="steel">Steel</option>
+  <option value="sunset">Sunset</option>
+</select>
     </header>
 
     <main style={{ padding: 16 }}>
