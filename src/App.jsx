@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
 import Vacations from "./vacations/Vacations";
+import Duty from "./duty/Duty";
 const API_URL = "https://marine-organizer.onrender.com";
 const users = ["MV", "GI", "GN", "DV", "YG"];
 const progressColumns = ["DG1", "DG2", "DG3", "ME"];
@@ -1105,6 +1106,7 @@ if (newType === "ongoing") {
     }}
   >
     <header style={{ background: "#1e293b", color: "white", padding: 12 }}>
+      <button onClick={() => setView("duty")}>Duty</button>
       <button onClick={() => setView("vacations")}>Vacations</button>
       <button onClick={() => setView("home")}>Home</button>{" "}
       <button onClick={() => setView("ongoing")}>Ongoing</button>{" "}
@@ -1128,7 +1130,8 @@ if (newType === "ongoing") {
 </select>
     </header>
 
-    <main style={{ padding: 16 }}>    
+    <main style={{ padding: 16 }}>  
+      {view === "duty" && <Duty />}  
       {view === "home" && <Dashboard />}
       {view === "ongoing" && <Ongoing />}
       {view === "upcoming" && <Upcoming />}

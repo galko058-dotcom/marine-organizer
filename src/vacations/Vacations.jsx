@@ -7,7 +7,11 @@ export default function Vacations() {
   const [prevBalances, setPrevBalances] = useState([]);
   const [selectedUser, setSelectedUser] = useState("MV");
   const users = ["MV", "GI", "GN", "YG"];
-
+  const [holidays, setHolidays] = useState([]);
+  const today = new Date();
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
  useEffect(() => {
   fetchBalances();
   fetchVacations();
@@ -19,6 +23,29 @@ useEffect(() => {
     handleYearChange();
   }
 }, [balances, prevBalances]);
+
+useEffect(() => {
+  fetchHolidays();
+}, [year]);
+
+async function fetchHolidays() {
+  try {
+    const res = await fetch(
+      `https://date.nager.at/api/v3/PublicHolidays/${year}/BG`
+    );
+    const data = await res.json();
+
+    setHolidays(data);
+  } catch (err) {
+    console.error("Holiday fetch error:", err);
+  }
+}
+
+function isHoliday(day) {
+  const date = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+  return holidays.some(h => h.date === date);
+}
 
   async function fetchVacations() {
     const { data } = await supabase
@@ -87,15 +114,12 @@ useEffect(() => {
   }
 }
 
-  const today = new Date();
-  const [currentDate, setCurrentDate] = useState(new Date());
-
+  
   function getDaysInMonth(year, month) {
     return new Date(year, month + 1, 0).getDate();
   }
 
- const year = currentDate.getFullYear();
-const month = currentDate.getMonth();
+ 
 
   const monthName = new Date(year, month).toLocaleString("en-US", {
     month: "long"
@@ -244,6 +268,35 @@ if (!error) {
   return vacations.some(
     v => v.date === date && v.user_name === selectedUser
   );
+}
+
+function getBorderColor(day) {
+  if (isToday(day)) return "#facc15"; // най-висок приоритет
+  if (isHoliday(day)) return "#ef4444";
+  if (isWeekend(day)) return "#ef4444";
+  return "transparent";
+}
+
+function isToday(day) {
+  const now = new Date();
+
+  return (
+    day === now.getDate() &&
+    month === now.getMonth() &&
+    year === now.getFullYear()
+  );
+}
+
+function isWeekend(day) {
+  const date = new Date(year, month, day);
+  const d = date.getDay();
+  return d === 0 || d === 6;
+}
+
+function isWeekend(day) {
+  const date = new Date(year, month, day);
+  const d = date.getDay(); // 0 = Sunday, 6 = Saturday
+  return d === 0 || d === 6;
 }
 
   return (
@@ -401,43 +454,34 @@ if (!error) {
 ))}
         {days.map(day => {
          const users = getUsersForDay(day);
+         let borderColor = getBorderColor(day);
 
-         function isToday(day) {
-  const now = new Date();
-
-  return (
-    day === now.getDate() &&
-    month === now.getMonth() &&
-    year === now.getFullYear()
-  );
-}
-
-         
+if (isWeekend(day)) borderColor = "#ef4444";
+if (isHoliday(day)) borderColor = "#ef4444";
+if (isToday(day)) borderColor = "#facc15";       
 
           return (
             <div
               key={day}
               onClick={() => addVacationDay(day)}
+              
               style={{
   padding: 10,
   background: "#1e293b",
   textAlign: "center",
   cursor: "pointer",
   borderRadius: 6,
- border: isToday(day) ? "1px solid #facc15" : "1px solid transparent",
+ border: `1px solid ${borderColor}`,
   transition: "0.2s"
 }}
 onMouseEnter={e => {
   e.currentTarget.style.border = "1px solid #38bdf8";
 }}
 onMouseLeave={e => {
-  if (isToday(day)) {
-    e.currentTarget.style.border = "1px solid #facc15";
-  } else {
-    e.currentTarget.style.border = "1px solid transparent";
-  }
+  const original = getBorderColor(day);
+  e.currentTarget.style.border = `1px solid ${original}`;
 }}
-            >
+>
              <div>{day}</div>
 
 <div style={{ display: "flex", gap: 4, marginTop: 4, justifyContent: "center" }}>
