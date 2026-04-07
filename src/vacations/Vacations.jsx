@@ -4,12 +4,21 @@ import { supabase } from "../supabase";
 export default function Vacations() {
   const [balances, setBalances] = useState([]);
   const [vacations, setVacations] = useState([]);
+  const [prevBalances, setPrevBalances] = useState([]);
   const [selectedUser, setSelectedUser] = useState("MV");
+  const users = ["MV", "GI", "GN", "YG"];
 
-  useEffect(() => {
-    fetchBalances();
-    fetchVacations();
-  }, []);
+ useEffect(() => {
+  fetchBalances();
+  fetchVacations();
+  fetchPrevBalances();
+}, []);
+
+useEffect(() => {
+  if (balances.length && prevBalances.length) {
+    handleYearChange();
+  }
+}, [balances, prevBalances]);
 
   async function fetchVacations() {
     const { data } = await supabase
@@ -27,6 +36,14 @@ export default function Vacations() {
     setBalances(data || []);
   }
 
+  async function fetchPrevBalances() {
+  const { data } = await supabase
+    .from("vacation_balances_prev")
+    .select("*");
+
+  setPrevBalances(data || []);
+}
+
   async function updateBalance(user, value) {
     await supabase
       .from("vacation_balances")
@@ -39,6 +56,36 @@ export default function Vacations() {
       )
     );
   }
+
+  async function handleYearChange() {
+  const currentYear = new Date().getFullYear();
+
+  for (const b of balances) {
+    if (b.year !== currentYear) {
+      const prev = prevBalances.find(p => p.user_name === b.user_name);
+
+      const newPrevDays = (prev?.days_left || 0) + b.days_left;
+
+      // update prev table
+      await supabase
+        .from("vacation_balances_prev")
+        .update({
+          days_left: newPrevDays,
+          year: currentYear - 1
+        })
+        .eq("user_name", b.user_name);
+
+      // reset current year
+      await supabase
+        .from("vacation_balances")
+        .update({
+          days_left: 20,
+          year: currentYear
+        })
+        .eq("user_name", b.user_name);
+    }
+  }
+}
 
   const today = new Date();
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -98,36 +145,97 @@ function nextMonth() {
   );
 
   // 🔴 ако има → махаме
-  if (existing) {
+ if (existing) {
+
+  // 🔁 връщаме дни обратно
+  if (existing.source === "prev") {
+    const prevBalance = prevBalances.find(p => p.user_name === selectedUser);
+
     await supabase
-      .from("vacations")
-      .delete()
-      .eq("id", existing.id);
+      .from("vacation_balances_prev")
+      .update({
+        days_left: (prevBalance?.days_left || 0) + 1
+      })
+      .eq("user_name", selectedUser);
 
-    setVacations(prev =>
-      prev.filter(v => v.id !== existing.id)
-    );
+  } else {
+    const userBalance = balances.find(b => b.user_name === selectedUser);
 
-    return;
+    await supabase
+      .from("vacation_balances")
+      .update({
+        days_left: (userBalance?.days_left || 0) + 1
+      })
+      .eq("user_name", selectedUser);
   }
+
+  // 🗑️ трием vacation
+  await supabase
+    .from("vacations")
+    .delete()
+    .eq("id", existing.id);
+
+  setVacations(prev =>
+    prev.filter(v => v.id !== existing.id)
+  );
+
+  // 🔄 refresh
+  fetchBalances();
+  fetchPrevBalances();
+
+  return;
+}
 
   // 🛑 защита (реално няма да се стигне, но е safe)
   if (existing) return;
 
   // 🟢 add
-  const { data, error } = await supabase
-    .from("vacations")
-    .insert([
-      {
-        user_name: selectedUser,
-        date
-      }
-    ])
-    .select();
+  const userBalance = balances.find(b => b.user_name === selectedUser);
+  const prevBalance = prevBalances.find(p => p.user_name === selectedUser);
 
-  if (!error) {
-    setVacations(prev => [...prev, ...data]);
-  }
+let source = "current";
+
+if (prevBalance && prevBalance.days_left > 0) {
+  source = "prev";
+
+  await supabase
+    .from("vacation_balances_prev")
+    .update({
+     days_left: Math.max(0, prevBalance.days_left - 1)
+    })
+    .eq("user_name", selectedUser);
+
+} else if (userBalance && userBalance.days_left > 0) {
+  source = "current";
+
+  await supabase
+    .from("vacation_balances")
+    .update({
+     days_left: Math.max(0, userBalance.days_left - 1)
+    })
+    .eq("user_name", selectedUser);
+
+} else {
+  alert("No remaining days!");
+  return;
+}
+
+const { data, error } = await supabase
+  .from("vacations")
+  .insert([
+    {
+      user_name: selectedUser,
+      date,
+      source
+    }
+  ])
+  .select();
+
+if (!error) {
+  setVacations(prev => [...prev, ...data]);
+  fetchBalances();
+  fetchPrevBalances();
+}
 }
 
  function isDayBooked(day) {
@@ -173,6 +281,7 @@ function nextMonth() {
 </div>
 
       {/* TABLE */}
+      <div style={{ display: "flex", gap: 20 }}>
       <table border="1" cellPadding="8">
         <thead>
           <tr>
@@ -182,28 +291,57 @@ function nextMonth() {
         </thead>
 
         <tbody>
-          {balances.map(b => (
-            <tr key={b.user_name}>
-              <td>{b.user_name}</td>
+          {users.map(u => {
+  const b = balances.find(x => x.user_name === u);
+  if (!b) return null;
 
-              <td>
-                <select
-                  value={b.days_left}
-                  onChange={e =>
-                    updateBalance(b.user_name, Number(e.target.value))
-                  }
-                >
-                  {Array.from({ length: 21 }, (_, i) => (
-                    <option key={i} value={i}>
-                      {i}
-                    </option>
-                  ))}
-                </select>
-              </td>
-            </tr>
+  return (
+    <tr key={u}>
+      <td>{u}</td>
+
+      <td>
+        <select
+          value={b.days_left}
+          onChange={e =>
+            updateBalance(u, Number(e.target.value))
+          }
+        >
+          {Array.from({ length: 21 }, (_, i) => (
+            <option key={i} value={i}>
+              {i}
+            </option>
           ))}
+        </select>
+      </td>
+    </tr>
+  );
+})}
         </tbody>
       </table>
+      
+      <table border="1" cellPadding="8">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Prev Year Days</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {users.map(u => {
+  const b = prevBalances.find(x => x.user_name === u);
+  if (!b) return null;
+
+  return (
+    <tr key={u}>
+      <td>{u}</td>
+      <td>{b.days_left}</td>
+    </tr>
+  );
+})}
+  </tbody>
+</table>
+</div>
 
       {/* CALENDAR HEADER */}
      <div
@@ -214,6 +352,16 @@ function nextMonth() {
     marginTop: 30
   }}
 >
+  <button
+  onClick={() => setCurrentDate(new Date())}
+  style={{
+    marginLeft: 10,
+    padding: "4px 8px",
+    cursor: "pointer"
+  }}
+>
+  Today
+</button>
   <button onClick={prevMonth}>←</button>
 
   <h3 style={{ margin: 0 }}>
@@ -254,6 +402,16 @@ function nextMonth() {
         {days.map(day => {
          const users = getUsersForDay(day);
 
+         function isToday(day) {
+  const now = new Date();
+
+  return (
+    day === now.getDate() &&
+    month === now.getMonth() &&
+    year === now.getFullYear()
+  );
+}
+
          
 
           return (
@@ -261,12 +419,24 @@ function nextMonth() {
               key={day}
               onClick={() => addVacationDay(day)}
               style={{
-                padding: 10,
-               background: "#1e293b",
-                textAlign: "center",
-                cursor: "pointer",
-                borderRadius: 6
-              }}
+  padding: 10,
+  background: "#1e293b",
+  textAlign: "center",
+  cursor: "pointer",
+  borderRadius: 6,
+ border: isToday(day) ? "1px solid #facc15" : "1px solid transparent",
+  transition: "0.2s"
+}}
+onMouseEnter={e => {
+  e.currentTarget.style.border = "1px solid #38bdf8";
+}}
+onMouseLeave={e => {
+  if (isToday(day)) {
+    e.currentTarget.style.border = "1px solid #facc15";
+  } else {
+    e.currentTarget.style.border = "1px solid transparent";
+  }
+}}
             >
              <div>{day}</div>
 
