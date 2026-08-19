@@ -138,7 +138,8 @@ function isHoliday(day) {
   MV: "#22c55e",
   GI: "#3b82f6",
   GN: "#f59e0b",
-  YG: "#a855f7"
+  YG: "#a855f7",
+  PDz:"#ef4444",
 };
 
 function prevMonth() {
@@ -303,31 +304,31 @@ function isWeekend(day) {
     <div>
       <h2>Vacations</h2>
       <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-  {Object.keys(userColors).map(user => (
+ {users.map(user => (
+  <div
+    key={user}
+    onClick={() => setSelectedUser(user)}
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      cursor: "pointer",
+      padding: "4px 8px",
+      borderRadius: 6,
+      background: selectedUser === user ? "#334155" : "transparent"
+    }}
+  >
     <div
-      key={user}
-      onClick={() => setSelectedUser(user)}
       style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 6,
-        cursor: "pointer",
-        padding: "4px 8px",
-        borderRadius: 6,
-        background: selectedUser === user ? "#334155" : "transparent"
+        width: 10,
+        height: 10,
+        borderRadius: "50%",
+        background: userColors[user]
       }}
-    >
-      <div
-        style={{
-          width: 10,
-          height: 10,
-          borderRadius: "50%",
-          background: userColors[user]
-        }}
-      />
-      <span>{user}</span>
-    </div>
-  ))}
+    />
+    <span>{user}</span>
+  </div>
+))}
 </div>
       <div style={{ marginBottom: 12 }}>
   
