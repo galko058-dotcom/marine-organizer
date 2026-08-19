@@ -6,7 +6,7 @@ export default function Vacations() {
   const [vacations, setVacations] = useState([]);
   const [prevBalances, setPrevBalances] = useState([]);
   const [selectedUser, setSelectedUser] = useState("MV");
-  const users = ["MV", "GI", "GN", "YG"];
+  const users = ["MV", "GI", "GN", "YG", "PDz"];
   const [holidays, setHolidays] = useState([]);
   const today = new Date();
   const [currentDate, setCurrentDate] = useState(new Date());

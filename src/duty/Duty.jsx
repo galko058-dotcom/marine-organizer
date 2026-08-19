@@ -86,7 +86,7 @@ function getBorderColor(day) {
   }
 
   const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  const users = ["GI", "GN", "YG"];
+  const users = ["GI", "GN", "YG", "PDz"];
 
   function getDutyForDay(day) {
   const date = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;

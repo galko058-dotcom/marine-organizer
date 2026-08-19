@@ -3,7 +3,7 @@ import { supabase } from "./supabase";
 import Vacations from "./vacations/Vacations";
 import Duty from "./duty/Duty";
 const API_URL = "https://marine-organizer.onrender.com";
-const users = ["MV", "GI", "GN", "DV", "YG"];
+const users = ["MV", "GI", "GN", "PDz", "YG"];
 const progressColumns = ["DG1", "DG2", "DG3", "ME"];
 const progressRows = [
   "Dismount",
